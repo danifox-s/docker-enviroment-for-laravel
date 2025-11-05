@@ -1,18 +1,62 @@
 # 🐳 Docker окружение для Laravel
 
+Универсальный шаблон Docker-окружения для Laravel проектов. 
+**Поддерживает запуск множества проектов одновременно без конфликтов!**
+
+## ✨ Ключевые особенности
+
+- 🔀 **Множественные проекты** - запускайте несколько проектов одновременно
+- 🎯 **Нет конфликтов** - уникальные контейнеры, сети и volumes для каждого проекта
+- 🚀 **Быстрый старт** - одна команда для инициализации
+- ⚙️ **Настраиваемые порты** - через переменные окружения
+- 🔧 **Makefile команды** - удобные алиасы для всех операций
+- 🐛 **Xdebug** - готов к использованию в development режиме
+- 📦 **Production ready** - отдельная конфигурация для продакшена
+
+---
+
 ## 🚀 Быстрый старт
 
-### Development (разработка)
+### 1. Клонирование и настройка
 ```bash
-make dev
-```
-Откройте: http://localhost:8000
+# Клонируйте репозиторий с новым именем проекта
+git clone https://github.com/danifox-s/docker-enviroment-for-laravel.git my-project
+cd my-project
 
-### Production (продакшен)
-```bash
-make prod-deploy
+# Инициализируйте проект (создаст .env из .env.example)
+make init-project
 ```
-Откройте: http://localhost
+
+### 2. ⚠️ ВАЖНО: Настройте .env
+Откройте `.env` и измените:
+
+```env
+# Уникальное имя проекта (обязательно для каждого нового проекта!)
+COMPOSE_PROJECT_NAME=my-project
+
+# Порты (измените, если уже запущены другие проекты)
+APP_PORT=8000
+PHPMYADMIN_PORT=8080
+```
+
+### 3. Проверка и запуск
+```bash
+# Проверить конфигурацию и доступность портов
+make check-config
+
+# Быстрый старт (соберёт, запустит и установит зависимости)
+make dev
+
+# Или пошагово:
+# make up                          # Запустить контейнеры
+# make composer CMD="install"      # Установить зависимости
+# make artisan CMD="key:generate"  # Сгенерировать ключ
+
+# Выполнить миграции
+make migrate
+```
+
+Откройте: http://localhost:8000
 
 ---
 
@@ -26,16 +70,23 @@ make prod-deploy
 
 ## 🔧 Основные команды
 
+### Быстрый запуск
+```bash
+make dev             # Полная инициализация (build+up+install)
+make prod-deploy     # Production деплой
+```
+
 ### Управление контейнерами
 ```bash
 make help            # Показать все команды
-make up              # Запустить (development)
+make up              # Запустить контейнеры (development)
+make up-tools        # Запустить с PHPMyAdmin
 make up-prod         # Запустить (production)
+make up-full         # Запустить все (worker + scheduler)
 make down            # Остановить
 make restart         # Перезапустить
 make ps              # Статус контейнеров
 make logs            # Логи всех сервисов
-make health-check    # Проверить здоровье системы
 ```
 
 ### Работа с приложением
@@ -52,8 +103,27 @@ make cache-clear                    # Очистить кеш
 ### База данных
 ```bash
 make shell-mysql     # Войти в MySQL
-make phpmyadmin-up   # PHPMyAdmin (localhost:8080)
 ```
+
+---
+
+## 🔀 Множественные проекты одновременно
+
+### Как это работает
+Благодаря `COMPOSE_PROJECT_NAME` каждый проект получает уникальные:
+- Контейнеры: `my-shop-app-1`, `blog-app-1`, `api-app-1`
+- Volumes: `my-shop_mysql_data`, `blog_mysql_data`, `api_mysql_data`
+- Сети: `my-shop_laravel-network`, `blog_laravel-network`, `api_laravel-network`
+
+### Пример: 3 проекта одновременно
+
+| Проект | COMPOSE_PROJECT_NAME | APP_PORT | URL |
+|--------|---------------------|----------|-----|
+| Shop   | `my-shop`           | 8000     | http://localhost:8000 |
+| Blog   | `blog`              | 8001     | http://localhost:8001 |
+| API    | `api`               | 8002     | http://localhost:8002 |
+
+**Все работают независимо!** Просто измените `COMPOSE_PROJECT_NAME` и порты в `.env` каждого проекта.
 
 ---
 
@@ -96,26 +166,9 @@ Makefile                          # Команды
 
 ---
 
-## ⚙️ Настройка
+## ⚙️ Дополнительная настройка
 
-### Первый запуск
-
-```bash
-# 1. Копировать .env
-cp .env.example .env
-
-# 2. Проверить настройки (должны быть для Docker)
-DB_HOST=mysql
-REDIS_HOST=redis
-
-# 3. Запустить
-make dev
-
-# 4. Открыть
-open http://localhost:8000
-```
-
-### Настройка Xdebug (PHPStorm)
+### Xdebug (PHPStorm)
 
 1. **Settings → PHP → Servers**
    - Name: `docker`
@@ -192,74 +245,42 @@ docker compose -f docker-compose.prod.yml ps
 
 ---
 
-## 🔧 Troubleshooting
+## 🔧 Решение проблем
 
-### Контейнеры не запускаются
-
+### Порт занят
 ```bash
-make logs                # Посмотреть ошибки
-make down-all            # Остановить всё
-make build               # Пересобрать
-make up                  # Запустить снова
+# Проверить, что использует порт
+lsof -i :8000
+
+# Изменить APP_PORT в .env на другой (например, 8001)
+# Перезапустить: make down && make up
 ```
 
-### Порты заняты
-
-Измените в `docker-compose.yml`:
-```yaml
-webserver:
-  ports:
-    - "8080:80"  # Вместо 8000
-```
-
-### Проблемы с правами
-
+### Конфликт контейнеров
 ```bash
-make fix-permissions
+# Убедитесь, что COMPOSE_PROJECT_NAME уникален в .env
+# Остановить: make down
+# Изменить COMPOSE_PROJECT_NAME
+# Запустить: make up
 ```
 
 ### БД не подключается
-
 ```bash
-# 1. Проверить что зависимости установлены
-make shell
-ls vendor  # Должна существовать папка vendor
-exit
+# Проверить, что MySQL готова
+make logs-mysql
 
-# Если vendor нет - установить зависимости
-make install
+# Проверить .env (должно быть DB_HOST=mysql)
+cat .env | grep DB_HOST
 
-# 2. Проверить .env
-cat .env | grep DB_HOST  # Должно быть: mysql
-
-# 3. Подождать пока MySQL будет готова
-sleep 15
-make migrate
-
-# 4. Проверить подключение
-make artisan CMD="migrate:status"
+# Установить зависимости если нужно
+make composer CMD="install"
 ```
 
-### Xdebug не работает
-
+### Полная очистка проекта
 ```bash
-# Проверить
-docker compose exec app php -v  # Должен быть Xdebug
-
-# Логи
-docker compose exec app cat /var/www/html/storage/logs/xdebug.log
-
-# Перезапустить
-make restart
-```
-
-### Полная пересборка
-
-```bash
-make down-all   # Удалит контейнеры и volumes
-make clean      # Очистит Docker систему
+make down-all   # Удалит контейнеры и данные БД
 make build      # Пересоберёт образы
-make up         # Запустит
+make up         # Запустит заново
 ```
 
 ---
@@ -382,3 +403,32 @@ make prod-deploy     # Production деплой
 - ✅ Используйте сильные пароли
 - ✅ Настройте мониторинг
 - ✅ Настройте SSL/HTTPS
+
+---
+
+## 📝 Шпаргалка для нового проекта
+
+```bash
+# 1. Клонируем репозиторий
+git clone your-repo.git my-project && cd my-project
+
+# 2. Инициализируем (создаст .env)
+make init-project
+
+# 3. Редактируем .env (ОБЯЗАТЕЛЬНО!)
+# COMPOSE_PROJECT_NAME=my-project  ← уникальное имя!
+# APP_PORT=8000
+
+# 4. Проверяем конфигурацию
+make check-config
+
+# 5. Запускаем (всё в одной команде: build + up + install)
+make dev
+
+# 6. Выполняем миграции
+make migrate
+
+# Готово! → http://localhost:8000
+```
+
+**Ключевое правило:** Всегда меняйте `COMPOSE_PROJECT_NAME` для каждого нового проекта!

@@ -1,5 +1,6 @@
 # Production Docker Compose
 # Для использования: docker compose -f docker-compose.prod.yml up -d
+# ВАЖНО: Убедитесь, что в .env установлен COMPOSE_PROJECT_NAME для уникальности!
 
 services:
   # PHP-FPM Service
@@ -8,7 +9,6 @@ services:
       context: .
       dockerfile: docker/php/Dockerfile
       target: production
-    container_name: laravel_app_prod
     restart: always
     working_dir: /var/www/html
     environment:
@@ -31,10 +31,9 @@ services:
   # Nginx Service
   webserver:
     image: nginx:alpine
-    container_name: laravel_webserver_prod
     restart: always
     ports:
-      - "80:80"
+      - "${APP_PORT:-80}:80"
     volumes:
       - ./public:/var/www/html/public:ro
       - ./docker/nginx/conf.d:/etc/nginx/conf.d:ro
@@ -51,7 +50,6 @@ services:
   # MySQL Service
   mysql:
     image: mysql:8.0
-    container_name: laravel_mysql_prod
     restart: always
     environment:
       MYSQL_DATABASE: ${DB_DATABASE:-laravel}
@@ -75,7 +73,6 @@ services:
   # Redis Service
   redis:
     image: redis:7-alpine
-    container_name: laravel_redis_prod
     restart: always
     volumes:
       - redis_data:/data
@@ -94,7 +91,6 @@ services:
       context: .
       dockerfile: docker/php/Dockerfile
       target: production
-    container_name: laravel_queue_prod
     restart: always
     working_dir: /var/www/html
     command: php artisan queue:work --sleep=3 --tries=3 --max-time=3600
@@ -116,7 +112,6 @@ services:
       context: .
       dockerfile: docker/php/Dockerfile
       target: production
-    container_name: laravel_scheduler_prod
     restart: always
     working_dir: /var/www/html
     command: >
