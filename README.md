@@ -1,159 +1,156 @@
 # 🐳 Laravel Docker Environment
 
-Минималистичный Docker-шаблон для Laravel-проектов.
-**Не содержит Laravel** — только Docker-конфигурация, готовая к переносу в любой проект.
+A minimal Docker template for Laravel projects.
+**Does not include Laravel** — only Docker configuration, ready to be copied into any project.
 
-## 📦 Состав
+## 📦 Structure
 
 ```
 .
 ├── docker/
-│   ├── nginx/conf.d/app.conf       # Nginx конфигурация
+│   ├── nginx/conf.d/app.conf       # Nginx configuration
 │   └── php/
 │       ├── Dockerfile              # Multi-stage: development + production
 │       └── conf.d/
-│           ├── php.ini             # Базовые PHP настройки
-│           ├── php-production.ini  # Production PHP настройки
-│           └── xdebug.ini          # Xdebug конфигурация
+│           ├── php.ini             # Base PHP settings
+│           ├── php-production.ini  # Production PHP settings
+│           └── xdebug.ini          # Xdebug configuration
 ├── docker-compose.yml              # Development
 ├── docker-compose.prod.yml         # Production
 ├── .dockerignore
-├── .env.docker                     # Шаблон Docker-переменных окружения
-├── docker-health-check.sh          # Диагностический скрипт
-├── install.sh                      # ← Скрипт установки в Laravel-проект
-└── Makefile                        # Удобные команды
+├── .env.docker                     # Docker environment variables template
+├── docker-health-check.sh          # Diagnostic script
+├── install.sh                      # ← Installer script for Laravel projects
+└── Makefile                        # Convenience commands
 ```
 
 ---
 
-## 🚀 Установка в новый Laravel-проект
+## 🚀 Installing into a new Laravel project
 
 ```bash
-# 1. Создайте новый Laravel проект
+# 1. Create a new Laravel project
 composer create-project laravel/laravel my-project
 cd my-project
 
-# 2. Клонируйте этот репозиторий рядом
-git clone https://github.com/your-username/laravel-docker.git ../laravel-docker
+# 2. Run the installer — copies files and merges .env
+laravel-docker .
 
-# 3. Запустите установщик — скопирует файлы и смержит .env
-../laravel-docker/install.sh .
-
-# 4. Задайте уникальное имя проекта в .env
+# 3. Set a unique project name in .env
 # COMPOSE_PROJECT_NAME=my-project
 
-# 5. Запустите
+# 4. Start
 make dev
 ```
 
-### Что делает install.sh
+### What install.sh does
 
-- Копирует `docker/`, `docker-compose.yml`, `docker-compose.prod.yml`, `Makefile`, `.dockerignore`, `docker-health-check.sh` в целевой проект
-- Умно мержит `.env.docker` в уже существующий `.env` Laravel:
-  - **Заменяет** `DB_HOST`, `REDIS_HOST`, `SESSION_DRIVER`, `CACHE_STORE`, `QUEUE_CONNECTION` под Docker
-  - **Добавляет** `COMPOSE_PROJECT_NAME`, `APP_PORT`, Xdebug-переменные (только если их нет)
-  - Не трогает переменные, которые уже совпадают
+- Copies `docker/`, `docker-compose.yml`, `docker-compose.prod.yml`, `Makefile`, `.dockerignore`, `docker-health-check.sh`, `README.md` (as `DOCKER.md`) into the target project
+- Smartly merges `.env.docker` into the existing Laravel `.env`:
+  - **Replaces** `DB_HOST`, `REDIS_HOST`, `SESSION_DRIVER`, `CACHE_STORE`, `QUEUE_CONNECTION` for Docker
+  - **Adds** `COMPOSE_PROJECT_NAME`, `APP_PORT`, `DB_PORT_EXTERNAL`, Xdebug and PHP variables (only if missing)
+  - Leaves variables that already match untouched
 
 ```bash
-# Посмотреть что будет сделано без применения изменений:
+# Preview changes without applying them:
 ./install.sh /path/to/project --dry-run
 ```
 
 ---
 
-## ✨ Возможности
+## ✨ Features
 
-- 🔀 **Множественные проекты** — уникальные контейнеры, сети и volumes через `COMPOSE_PROJECT_NAME`
-- 🐛 **Xdebug** — готов из коробки в development-режиме (порт 9003)
-- 📦 **Production ready** — отдельная конфигурация с OpCache JIT, без Xdebug, код в образе
-- ⚙️ **Настраиваемые порты** — через переменные окружения
-
----
-
-## 🔀 Несколько проектов одновременно
-
-Каждый проект должен иметь уникальный `COMPOSE_PROJECT_NAME` и разные порты в `.env`:
-
-| Проект | COMPOSE_PROJECT_NAME | APP_PORT | URL                   |
-|--------|---------------------|----------|-----------------------|
-| Shop   | `my-shop`           | 8000     | http://localhost:8000 |
-| Blog   | `blog`              | 8001     | http://localhost:8001 |
-| API    | `api`               | 8002     | http://localhost:8002 |
+- 🔀 **Multiple projects** — unique containers, networks and volumes via `COMPOSE_PROJECT_NAME`
+- 🐛 **Xdebug** — ready out of the box in development mode (port 9003)
+- 📦 **Production ready** — separate configuration with OpCache JIT, no Xdebug, code baked into image
+- ⚙️ **Configurable ports** — via environment variables
 
 ---
 
-## ⚠️ Важно: команды выполняются внутри контейнеров
+## 🔀 Running multiple projects simultaneously
 
-Все команды (`php`, `artisan`, `composer`) выполняются **внутри Docker-контейнера**, а не в локальном терминале.
+Each project must have a unique `COMPOSE_PROJECT_NAME` and different ports in `.env`:
+
+| Project | COMPOSE_PROJECT_NAME | APP_PORT | URL                   |
+|---------|---------------------|----------|-----------------------|
+| Shop    | `my-shop`           | 8000     | http://localhost:8000 |
+| Blog    | `blog`              | 8001     | http://localhost:8001 |
+| API     | `api`               | 8002     | http://localhost:8002 |
+
+---
+
+## ⚠️ Important: commands run inside containers
+
+All commands (`php`, `artisan`, `composer`) must be run **inside the Docker container**, not in your local terminal.
 
 ```bash
-# Неправильно (локальный терминал)
+# Wrong (local terminal)
 php artisan migrate
 composer require package
 
-# Правильно — через Makefile
+# Correct — via Makefile
 make artisan CMD="migrate"
 make composer CMD="require package"
 
-# Или войти в контейнер и работать там
+# Or enter the container and work there
 make shell
 ```
 
-> **Для AI-агентов:** перед выполнением любых команд убедитесь, что контейнеры запущены (`make ps`). Используйте `make artisan`, `make composer` или `make shell`. Никогда не запускайте `php`, `artisan` или `composer` напрямую в локальном терминале.
+> **For AI agents:** before running any commands, make sure the containers are running (`make ps`). Use `make artisan`, `make composer` or `make shell`. Never run `php`, `artisan` or `composer` directly in the local terminal.
 >
-> После развёртывания Docker-окружения в новом проекте **обновите `CLAUDE.md`** (или создайте его), добавив эту информацию, чтобы агенты работали корректно в контексте конкретного проекта.
+> After deploying the Docker environment in a new project, **update `CLAUDE.md`** (or create it) with this information so agents work correctly in the project context.
 
 ---
 
-## 🔧 Команды Makefile
+## 🔧 Makefile commands
 
 ```bash
-make dev             # Полная инициализация (build + up + install)
-make up              # Запустить контейнеры (dev)
-make down            # Остановить
-make restart         # Перезапустить
-make ps              # Статус контейнеров
-make logs            # Логи всех сервисов
-make shell           # Войти в PHP контейнер
-make artisan CMD="migrate"           # Artisan команда
-make composer CMD="require package"  # Composer команда
-make test            # Запустить тесты
-make migrate         # Миграции
-make migrate-fresh   # Пересоздать БД
-make cache-clear     # Очистить кеш
-make up-tools        # Запустить с PHPMyAdmin
-make health-check    # Проверка состояния
-make prod-deploy     # Деплой в production
-make check-config    # Проверить конфигурацию и свободность портов
+make dev             # Full initialization (build + up + install)
+make up              # Start containers (dev)
+make down            # Stop containers
+make restart         # Restart containers
+make ps              # Container status
+make logs            # Logs for all services
+make shell           # Enter the PHP container
+make artisan CMD="migrate"           # Artisan command
+make composer CMD="require package"  # Composer command
+make test            # Run tests
+make migrate         # Run migrations
+make migrate-fresh   # Recreate DB
+make cache-clear     # Clear cache
+make up-tools        # Start with PHPMyAdmin
+make health-check    # System health check
+make prod-deploy     # Deploy to production
+make check-config    # Check configuration and port availability
 ```
 
 ---
 
-## 📦 Сервисы
+## 📦 Services
 
 **Development (`docker-compose.yml`):**
 
-| Сервис     | Образ                 | Порт              |
+| Service    | Image                 | Port              |
 |------------|-----------------------|-------------------|
 | app        | PHP 8.4-FPM + Xdebug  | 9003              |
 | webserver  | Nginx Alpine          | `APP_PORT`        |
-| mysql      | MySQL 8.0             | 3306              |
+| mysql      | MySQL 8.0             | `DB_PORT_EXTERNAL`|
 | redis      | Redis 7 Alpine        | 6379              |
 | phpmyadmin | PHPMyAdmin *(profile)*| `PHPMYADMIN_PORT` |
 | queue      | PHP-FPM *(profile)*   | —                 |
 | scheduler  | PHP-FPM *(profile)*   | —                 |
 
 **Production (`docker-compose.prod.yml`):**
-- Xdebug отключён, OpCache JIT включён
-- Код упакован в образ (нет volume mount)
-- Queue Worker и Scheduler запускаются всегда
+- Xdebug disabled, OpCache JIT enabled
+- Code baked into image (no volume mount)
+- Queue Worker and Scheduler always run
 
 ---
 
 ## ⚙️ Xdebug (PHPStorm)
 
 1. **Settings → PHP → Servers**
-   - Host: `localhost`, Port: значение `APP_PORT` из `.env`
+   - Host: `localhost`, Port: value of `APP_PORT` from `.env`
    - Debugger: `Xdebug`
    - Path mappings: `/path/to/project` → `/var/www/html`
 2. **Settings → PHP → Debug** → Xdebug port: `9003`
@@ -162,11 +159,11 @@ make check-config    # Проверить конфигурацию и свобо
 
 ## 🔄 Development vs Production
 
-| Параметр       | Development            | Production        |
-|----------------|------------------------|-------------------|
-| Xdebug         | ✅ Включён             | ❌ Отключён       |
-| Volume mount   | ✅ Да (live reload)    | ❌ Нет (в образе) |
-| OpCache JIT    | ❌                     | ✅                |
-| Queue Worker   | Опционально (profile)  | ✅ Всегда         |
-| Scheduler      | Опционально (profile)  | ✅ Всегда         |
-| Порт по умолч. | 8000                   | 80                |
+| Parameter    | Development            | Production        |
+|--------------|------------------------|-------------------|
+| Xdebug       | ✅ Enabled             | ❌ Disabled       |
+| Volume mount | ✅ Yes (live reload)   | ❌ No (in image)  |
+| OpCache JIT  | ❌                     | ✅                |
+| Queue Worker | Optional (profile)     | ✅ Always         |
+| Scheduler    | Optional (profile)     | ✅ Always         |
+| Default port | 8000                   | 80                |

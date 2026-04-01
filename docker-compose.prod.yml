@@ -1,6 +1,6 @@
 # Production Docker Compose
-# Для использования: docker compose -f docker-compose.prod.yml up -d
-# ВАЖНО: Убедитесь, что в .env установлен COMPOSE_PROJECT_NAME для уникальности!
+# Usage: docker compose -f docker-compose.prod.yml up -d
+# IMPORTANT: Make sure COMPOSE_PROJECT_NAME is set in .env for uniqueness!
 
 services:
   # PHP-FPM Service
@@ -140,4 +140,3 @@ volumes:
 networks:
   laravel-network:
     driver: bridge
-
