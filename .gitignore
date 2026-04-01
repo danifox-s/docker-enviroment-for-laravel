@@ -1,24 +1,18 @@
-*.log
+# OS
 .DS_Store
+Thumbs.db
+
+# IDE
+/.idea
+/.vscode
+/.fleet
+/.zed
+/.nova
+
+# Env — не коммитим реальные .env, только шаблоны (.env.docker трекается)
 .env
 .env.backup
 .env.production
-.phpactor.json
-.phpunit.result.cache
-/.fleet
-/.idea
-/.nova
-/.phpunit.cache
-/.vscode
-/.zed
-/auth.json
-/node_modules
-/public/build
-/public/hot
-/public/storage
-/storage/*.key
-/storage/pail
-/vendor
-Homestead.json
-Homestead.yaml
-Thumbs.db
+
+# Logs
+*.log

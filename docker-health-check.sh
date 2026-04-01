@@ -73,14 +73,17 @@ check_port() {
     fi
 }
 
-check_port 8000 "Nginx/Приложение"
+APP_PORT_VAL=$(grep "^APP_PORT=" .env 2>/dev/null | cut -d '=' -f2 || echo "8000")
+PMA_PORT_VAL=$(grep "^PHPMYADMIN_PORT=" .env 2>/dev/null | cut -d '=' -f2 || echo "8080")
+check_port "${APP_PORT_VAL:-8000}" "Nginx/Приложение"
 check_port 3306 "MySQL (если проброшен)"
-check_port 8080 "PHPMyAdmin (если запущен)"
+check_port "${PMA_PORT_VAL:-8080}" "PHPMyAdmin (если запущен)"
 
 # Проверка volumes
 echo ""
 echo -e "${YELLOW}Проверка volumes...${NC}"
-VOLUMES=$(docker volume ls --filter name=laravel-1loc --format "{{.Name}}" 2>/dev/null)
+PROJECT_NAME=$(grep "^COMPOSE_PROJECT_NAME=" .env 2>/dev/null | cut -d '=' -f2 || echo "")
+VOLUMES=$(docker volume ls --filter name="${PROJECT_NAME}" --format "{{.Name}}" 2>/dev/null)
 if [ -z "$VOLUMES" ]; then
     echo -e "${YELLOW}⚠${NC} Volumes не найдены"
 else
@@ -135,7 +138,7 @@ fi
 # Проверка подключения к БД
 echo ""
 echo -e "${YELLOW}Проверка подключения к БД...${NC}"
-if docker compose ps | grep -q "laravel_app.*Up"; then
+if docker compose ps | grep -q "app.*Up\|app.*running"; then
     DB_CHECK=$(docker compose exec -T app php artisan migrate:status 2>&1)
     if echo "$DB_CHECK" | grep -q "Migration name"; then
         echo -e "${GREEN}✓${NC} Подключение к БД работает"

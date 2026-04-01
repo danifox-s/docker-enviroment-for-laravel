@@ -233,7 +233,7 @@ dev: ## Быстрый старт для разработки
 	@make up
 	@make install
 	@echo "$(GREEN)✓ Окружение разработки готово!$(NC)"
-	@echo "Приложение: http://localhost:8000"
+	@echo "Приложение: http://localhost:$$(grep APP_PORT .env 2>/dev/null | cut -d '=' -f2 || echo '8000')"
 	@echo "PHPMyAdmin: make phpmyadmin-up"
 
 prod-deploy: ## Развертывание production
