@@ -108,6 +108,7 @@ copy_item "$SCRIPT_DIR/.dockerignore"            "$TARGET_DIR/.dockerignore"
 copy_item "$SCRIPT_DIR/Makefile"                 "$TARGET_DIR/Makefile"
 copy_item "$SCRIPT_DIR/docker-health-check.sh"   "$TARGET_DIR/docker-health-check.sh"
 copy_item "$SCRIPT_DIR/.env.docker"              "$TARGET_DIR/.env.docker"
+copy_item "$SCRIPT_DIR/README.md"                "$TARGET_DIR/DOCKER.md"
 
 if [ "$DRY_RUN" = false ]; then
     chmod +x "$TARGET_DIR/docker-health-check.sh"
